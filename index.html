@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ניהול ועד בית</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#F4F5F3; --surface:#FFFFFF; --ink:#22282C; --ink-soft:#63706F; --ink-faint:#93A09E;
+    --line:#E2E6E2; --navy:#1E3A4C; --navy-dark:#152B39; --navy-soft:#3E5A6C;
+    --green:#2E7D52; --green-bg:#E5F3EA; --red:#B14A32; --red-bg:#FBEAE3;
+    --amber:#A9762C; --amber-bg:#FBF0DF; --radius:10px;
+    --shadow:0 1px 3px rgba(30,42,50,0.08), 0 1px 2px rgba(30,42,50,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:"Segoe UI","Arial Hebrew","Noto Sans Hebrew",Tahoma,Arial,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;}
+  a{color:inherit;}
+  button{font-family:inherit;}
+
+  #app-shell{display:none;min-height:100vh;}
+  .login-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:50;padding:20px;}
+  .login-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:32px 28px;width:100%;max-width:360px;}
+  .login-card h1{font-size:19px;color:var(--navy-dark);margin:0 0 4px 0;}
+  .login-card .sub{font-size:13px;color:var(--ink-soft);margin-bottom:22px;}
+  .login-error{color:var(--red);font-size:13px;margin-top:10px;min-height:16px;}
+
+  .sidebar{width:236px;flex-shrink:0;background:var(--navy);color:#EDF1F0;display:flex;flex-direction:column;padding:22px 14px;min-height:100vh;}
+  .brand{padding:6px 10px 22px 10px;border-bottom:1px solid rgba(255,255,255,0.12);margin-bottom:14px;}
+  .brand-title{font-size:17px;font-weight:600;letter-spacing:0.2px;}
+  .brand-sub{font-size:12px;color:#9FB3BC;margin-top:3px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;color:#C9D6D9;font-size:14.5px;margin-bottom:2px;user-select:none;transition:background .12s ease;}
+  .nav-item .ic{font-size:16px;width:20px;text-align:center;}
+  .nav-item:hover{background:rgba(255,255,255,0.06);color:#fff;}
+  .nav-item.active{background:#fff;color:var(--navy-dark);font-weight:600;}
+  .sidebar-footer{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,0.1);}
+  .sidebar-footer .user-email{font-size:11.5px;color:#9FB3BC;padding:0 12px;margin-bottom:8px;word-break:break-all;}
+
+  .main{flex:1;padding:30px 36px 60px 36px;max-width:1180px;min-width:0;}
+  .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:16px;flex-wrap:wrap;}
+  .page-title{font-size:22px;font-weight:700;color:var(--navy-dark);margin:0;}
+  .page-sub{font-size:13.5px;color:var(--ink-soft);margin-top:4px;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+  .btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 16px;border-radius:8px;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .12s ease, border-color .12s ease;}
+  .btn:hover{background:#F0F2F0;}
+  .btn-primary{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .btn-primary:hover{background:var(--navy-dark);}
+  .btn-danger{color:var(--red);}
+  .btn-danger:hover{background:var(--red-bg);}
+  .btn-sm{padding:5px 10px;font-size:12.5px;}
+  .btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .btn-ghost{border-color:transparent;background:transparent;}
+  .btn-ghost:hover{background:#EDEFEC;}
+  .btn-block{width:100%;justify-content:center;}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);}
+  .card-pad{padding:20px;}
+
+  input[type=text],input[type=tel],input[type=number],input[type=date],input[type=email],input[type=password],textarea,select{
+    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:7px;font-size:13.5px;font-family:inherit;color:var(--ink);background:#fff;
+  }
+  input:focus,textarea:focus,select:focus{outline:2px solid #A9C2CC;outline-offset:0;border-color:var(--navy-soft);}
+  label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:5px;font-weight:600;}
+  .field{margin-bottom:14px;}
+  .field-row{display:flex;gap:12px;}
+  .field-row .field{flex:1;}
+  textarea{resize:vertical;min-height:64px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{text-align:right;font-size:12px;color:var(--ink-soft);font-weight:600;padding:0 12px 10px 12px;border-bottom:1px solid var(--line);}
+  tbody td{padding:11px 12px;border-bottom:1px solid #EEF0ED;vertical-align:middle;}
+  tbody tr:hover{background:#FAFBFA;}
+  tbody tr:last-child td{border-bottom:none;}
+  .empty-state{padding:50px 20px;text-align:center;color:var(--ink-soft);}
+  .empty-state .big{font-size:34px;margin-bottom:8px;}
+  .empty-state .msg{font-size:14px;margin-bottom:16px;}
+
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;}
+  .badge-green{background:var(--green-bg);color:var(--green);}
+  .badge-red{background:var(--red-bg);color:var(--red);}
+  .badge-amber{background:var(--amber-bg);color:var(--amber);}
+  .badge-grey{background:#EDEFEC;color:var(--ink-soft);}
+
+  .search-box{position:relative;max-width:260px;}
+  .search-box input{padding-right:32px;}
+  .search-box .ic{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--ink-faint);font-size:13px;}
+
+  .collection-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;}
+  .collection-card{cursor:pointer;padding:18px;transition:box-shadow .12s ease, transform .12s ease;}
+  .collection-card:hover{box-shadow:0 3px 10px rgba(30,42,50,0.12);transform:translateY(-1px);}
+  .collection-card h3{margin:0 0 4px 0;font-size:15.5px;color:var(--navy-dark);}
+  .collection-card .cdate{font-size:12px;color:var(--ink-faint);margin-bottom:12px;}
+  .progress-track{height:7px;background:#EDEFEC;border-radius:99px;overflow:hidden;margin-bottom:8px;}
+  .progress-fill{height:100%;background:var(--green);border-radius:99px;}
+  .progress-label{font-size:12px;color:var(--ink-soft);display:flex;justify-content:space-between;}
+
+  .back-link{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--navy-soft);cursor:pointer;margin-bottom:12px;}
+  .back-link:hover{text-decoration:underline;}
+
+  .stat-row{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+  .stat-box{flex:1;min-width:120px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;}
+  .stat-box .num{font-size:22px;font-weight:700;color:var(--navy-dark);}
+  .stat-box .lbl{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+
+  .pay-checkbox{width:19px;height:19px;cursor:pointer;accent-color:var(--green);}
+  .row-note-input{width:100%;padding:6px 8px;font-size:12.5px;border:1px solid var(--line);border-radius:6px;}
+
+  .issue-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;}
+  .issue-card{padding:16px;cursor:pointer;}
+  .issue-card:hover{box-shadow:0 3px 10px rgba(30,42,50,0.12);}
+  .issue-card h3{margin:0 0 6px 0;font-size:14.5px;color:var(--navy-dark);}
+  .issue-thumbs{display:flex;gap:6px;margin-top:10px;}
+  .issue-thumbs img{width:46px;height:46px;object-fit:cover;border-radius:6px;border:1px solid var(--line);}
+  .filter-tabs{display:flex;gap:6px;margin-bottom:16px;}
+  .filter-tab{padding:6px 14px;border-radius:999px;font-size:13px;cursor:pointer;background:#EDEFEC;color:var(--ink-soft);}
+  .filter-tab.active{background:var(--navy);color:#fff;}
+
+  .donut-wrap{display:flex;align-items:center;gap:26px;flex-wrap:wrap;}
+  .donut{width:170px;height:170px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .donut-inner{width:118px;height:118px;border-radius:50%;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .donut-inner .pct{font-size:26px;font-weight:700;color:var(--navy-dark);}
+  .donut-inner .pct-lbl{font-size:11px;color:var(--ink-soft);}
+  .legend{display:flex;flex-direction:column;gap:10px;}
+  .legend-item{display:flex;align-items:center;gap:8px;font-size:13.5px;}
+  .legend-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(20,28,32,0.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .modal{background:var(--surface);border-radius:12px;max-width:520px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,0.25);}
+  .modal-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .modal-head h2{margin:0;font-size:16.5px;color:var(--navy-dark);}
+  .modal-close{cursor:pointer;font-size:18px;color:var(--ink-faint);background:none;border:none;}
+  .modal-body{padding:20px 22px;}
+  .modal-foot{padding:16px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;}
+
+  .photo-input-wrap{border:1.5px dashed var(--line);border-radius:8px;padding:14px;text-align:center;font-size:13px;color:var(--ink-soft);cursor:pointer;}
+  .photo-preview-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .photo-preview-grid .ph{position:relative;width:64px;height:64px;}
+  .photo-preview-grid img{width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--line);}
+  .photo-preview-grid .rm{position:absolute;top:-6px;left:-6px;background:var(--red);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1;}
+
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy-dark);color:#fff;padding:11px 22px;border-radius:8px;font-size:13.5px;box-shadow:0 6px 20px rgba(0,0,0,0.25);z-index:300;opacity:0;transition:opacity .2s ease;pointer-events:none;}
+  .toast.show{opacity:1;}
+
+  .settings-section{margin-bottom:18px;}
+  .settings-section h3{font-size:15px;color:var(--navy-dark);margin:0 0 4px 0;}
+  .settings-section p{font-size:13px;color:var(--ink-soft);margin:0 0 12px 0;line-height:1.6;}
+  .soon-tag{display:inline-block;background:var(--amber-bg);color:var(--amber);font-size:11.5px;padding:2px 9px;border-radius:999px;margin-right:8px;font-weight:600;}
+  .code-box{background:#152B39;color:#D6E4E8;font-family:Consolas,monospace;font-size:12px;padding:10px 12px;border-radius:6px;overflow-x:auto;white-space:pre;}
+
+  ::-webkit-scrollbar{width:9px;}
+  ::-webkit-scrollbar-thumb{background:#D3D8D2;border-radius:99px;}
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="login-screen">
+  <div class="login-card">
+    <h1>ניהול ועד בית</h1>
+    <div class="sub">התחברות לנציגי הוועד</div>
+    <form id="login-form">
+      <div class="field">
+        <label>אימייל</label>
+        <input type="email" id="login-email" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label>סיסמה</label>
+        <input type="password" id="login-password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="login-submit">כניסה</button>
+      <div class="login-error" id="login-error"></div>
+    </form>
+  </div>
+</div>
+
+<div id="app-shell">
+  <nav class="sidebar">
+    <div class="brand">
+      <div class="brand-title">ניהול ועד בית</div>
+      <div class="brand-sub">מסד נתונים משותף לכל הנציגים</div>
+    </div>
+    <div class="nav-item" data-page="owners"><span class="ic">🏠</span><span>דירות ובעלים</span></div>
+    <div class="nav-item" data-page="collections"><span class="ic">💰</span><span>גבייה ותשלומים</span></div>
+    <div class="nav-item" data-page="issues"><span class="ic">🛠️</span><span>תקלות בבניין</span></div>
+    <div class="nav-item" data-page="summary"><span class="ic">📊</span><span>סיכום ודוחות</span></div>
+    <div class="nav-item" data-page="settings"><span class="ic">⚙️</span><span>הגדרות וגיבוי</span></div>
+    <div class="sidebar-footer">
+      <div class="user-email" id="user-email-display"></div>
+      <button class="btn btn-sm btn-block" id="logout-btn" style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);color:#EDF1F0;">התנתקות</button>
+    </div>
+  </nav>
+  <main class="main" id="content"></main>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+/* ============================================================
+   ⚠️  הגדרות חיבור ל-Supabase — יש להשלים לפני השימוש
+   Project Settings → API בפרויקט ה-Supabase שלכם
+   ============================================================ */
+const SUPABASE_URL = 'https://bhnmltbxrafjjjrrxtjn.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJobm1sdGJ4cmFmampqcnJ4dGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MzY2MTcsImV4cCI6MjEwNTUxMjYxN30.vaW50E1U9ETxHVgclPCj9el2Cw6XAQuJ8Qt44_rRTrc';
+const PHOTOS_BUCKET = 'issue-photos';
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ============================================================
+   DATABASE LAYER (Supabase / Postgres)
+   ============================================================ */
+async function dbGetAll(table){
+  const {data, error} = await supabaseClient.from(table).select('*');
+  if(error) throw error;
+  return data;
+}
+async function dbGet(table, id){
+  const {data, error} = await supabaseClient.from(table).select('*').eq('id', id).maybeSingle();
+  if(error) throw error;
+  return data;
+}
+async function dbAdd(table, obj){
+  const {data, error} = await supabaseClient.from(table).insert(obj).select().single();
+  if(error) throw error;
+  return data.id;
+}
+async function dbPut(table, obj){
+  const {id, ...rest} = obj;
+  const {error} = await supabaseClient.from(table).update(rest).eq('id', id);
+  if(error) throw error;
+}
+async function dbDelete(table, id){
+  const {error} = await supabaseClient.from(table).delete().eq('id', id);
+  if(error) throw error;
+}
+async function dbGetByIndex(table, column, value){
+  const {data, error} = await supabaseClient.from(table).select('*').eq(column, value);
+  if(error) throw error;
+  return data;
+}
+/* used only for restoring a JSON backup into empty tables (keeps original ids) */
+async function dbInsertRaw(table, obj){
+  const {error} = await supabaseClient.from(table).insert(obj);
+  if(error) throw error;
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function esc(s){
+  if(s===undefined||s===null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function fmtDate(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('he-IL');
+}
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function closeModal(){ document.getElementById('modal-root').innerHTML = ''; }
+function openModal(html){
+  document.getElementById('modal-root').innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal">${html}</div></div>`;
+  document.getElementById('modal-overlay').addEventListener('mousedown', (e)=>{
+    if(e.target.id === 'modal-overlay') closeModal();
+  });
+}
+function naturalCompare(a, b){
+  const ax = [], bx = [];
+  String(a).replace(/(\d+)|(\D+)/g, (_, d, s) => { ax.push([d ? parseInt(d) : Infinity, s || ""]); return ''; });
+  String(b).replace(/(\d+)|(\D+)/g, (_, d, s) => { bx.push([d ? parseInt(d) : Infinity, s || ""]); return ''; });
+  while(ax.length && bx.length){
+    const an = ax.shift(), bn = bx.shift();
+    const nn = (an[0]-bn[0]) || an[1].localeCompare(bn[1],'he');
+    if(nn) return nn;
+  }
+  return ax.length - bx.length;
+}
+function resizeImage(file, maxDim=1100, quality=0.82){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let {width, height} = img;
+        if(width > maxDim || height > maxDim){
+          if(width > height){ height = Math.round(height * maxDim/width); width = maxDim; }
+          else{ width = Math.round(width * maxDim/height); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function uploadIssuePhoto(file){
+  const dataUrl = await resizeImage(file);
+  const blob = await (await fetch(dataUrl)).blob();
+  const fileName = `issue-${Date.now()}-${Math.random().toString(36).slice(2,8)}.jpg`;
+  const {error} = await supabaseClient.storage.from(PHOTOS_BUCKET).upload(fileName, blob, {contentType:'image/jpeg'});
+  if(error) throw error;
+  const {data} = supabaseClient.storage.from(PHOTOS_BUCKET).getPublicUrl(fileName);
+  return data.publicUrl;
+}
+
+/* ---- CSV helpers ---- */
+function csvEscape(val){
+  const s = (val===undefined||val===null) ? '' : String(val);
+  if(/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+function toCSV(headers, rows){
+  const lines = [headers.map(h=>csvEscape(h.label)).join(',')];
+  for(const row of rows) lines.push(headers.map(h=>csvEscape(row[h.key])).join(','));
+  return '\uFEFF' + lines.join('\r\n');
+}
+function downloadCSV(filename, headers, rows){
+  const blob = new Blob([toCSV(headers, rows)], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+function parseCSV(text){
+  if(text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){ if(text[i+1] === '"'){ field += '"'; i++; } else inQuotes = false; }
+      else field += c;
+    } else {
+      if(c === '"') inQuotes = true;
+      else if(c === ','){ row.push(field); field=''; }
+      else if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c === '\r'){ /* skip */ }
+      else field += c;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows.filter(r => !(r.length===1 && r[0]===''));
+}
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+let currentSession = null;
+
+async function initAuth(){
+  const {data:{session}} = await supabaseClient.auth.getSession();
+  currentSession = session;
+  renderAuthState();
+  supabaseClient.auth.onAuthStateChange((_event, session)=>{
+    currentSession = session;
+    renderAuthState();
+  });
+}
+function renderAuthState(){
+  const loginEl = document.getElementById('login-screen');
+  const shellEl = document.getElementById('app-shell');
+  if(currentSession){
+    loginEl.style.display = 'none';
+    shellEl.style.display = 'flex';
+    document.getElementById('user-email-display').textContent = currentSession.user.email;
+    route();
+  } else {
+    loginEl.style.display = 'flex';
+    shellEl.style.display = 'none';
+  }
+}
+document.getElementById('login-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const submitBtn = document.getElementById('login-submit');
+  errEl.textContent = '';
+  submitBtn.disabled = true; submitBtn.textContent = 'מתחבר...';
+  const {error} = await supabaseClient.auth.signInWithPassword({email, password});
+  submitBtn.disabled = false; submitBtn.textContent = 'כניסה';
+  if(error){ errEl.textContent = 'אימייל או סיסמה שגויים.'; }
+});
+document.getElementById('logout-btn').addEventListener('click', ()=>{
+  supabaseClient.auth.signOut();
+});
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+function currentRoute(){
+  const hash = location.hash.replace('#','') || 'owners';
+  const parts = hash.split('/');
+  return {page: parts[0], param: parts[1] ? parseInt(parts[1]) : null};
+}
+async function route(){
+  if(!currentSession) return;
+  const {page, param} = currentRoute();
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+  const content = document.getElementById('content');
+  try{
+    if(page === 'owners') await renderOwners(content);
+    else if(page === 'collections'){
+      if(param) await renderCollectionDetail(content, param);
+      else await renderCollections(content);
+    }
+    else if(page === 'issues') await renderIssues(content);
+    else if(page === 'summary') await renderSummary(content);
+    else if(page === 'settings') await renderSettings(content);
+    else await renderOwners(content);
+  }catch(err){
+    console.error(err);
+    content.innerHTML = `<div class="card card-pad"><b>שגיאה בטעינת הנתונים.</b><br>${esc(err.message||err)}</div>`;
+  }
+}
+window.addEventListener('hashchange', route);
+document.querySelectorAll('.nav-item').forEach(el=>{
+  el.addEventListener('click', ()=>{ location.hash = '#' + el.dataset.page; });
+});
+
+/* ============================================================
+   OWNERS PAGE
+   ============================================================ */
+let ownerSortOption = (function(){
+  try{ return localStorage.getItem('vaadOwnerSort') || 'floor_asc'; }catch(e){ return 'floor_asc'; }
+})();
+function sortOwners(owners, sortOpt){
+  const arr = [...owners];
+  arr.sort((a,b)=>{
+    if(sortOpt === 'apt_asc') return naturalCompare(a.apartment, b.apartment);
+    if(sortOpt === 'apt_desc') return naturalCompare(b.apartment, a.apartment);
+    if(sortOpt === 'floor_desc') return (b.floor - a.floor) || naturalCompare(a.apartment,b.apartment);
+    return (a.floor - b.floor) || naturalCompare(a.apartment,b.apartment);
+  });
+  return arr;
+}
+
+async function renderOwners(content, filter='', sortOpt){
+  sortOpt = sortOpt || ownerSortOption;
+  ownerSortOption = sortOpt;
+  try{ localStorage.setItem('vaadOwnerSort', sortOpt); }catch(e){}
+  const owners = sortOwners(await dbGetAll('owners'), sortOpt);
+  const q = filter.trim().toLowerCase();
+  const filtered = q ? owners.filter(o =>
+    (o.full_name||'').toLowerCase().includes(q) ||
+    (o.apartment||'').toLowerCase().includes(q) ||
+    (o.phone||'').toLowerCase().includes(q)
+  ) : owners;
+
+  content.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">דירות ובעלים</h1>
+        <div class="page-sub">${owners.length} דירות רשומות בבניין</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="add-owner-btn">+ הוספת דירה</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+      <div class="search-box" style="margin-bottom:0;">
+        <input type="text" id="owner-search" placeholder="חיפוש לפי שם, דירה או טלפון..." value="${esc(filter)}">
+        <span class="ic">🔎</span>
+      </div>
+      <select id="owner-sort" style="max-width:200px;">
+        <option value="floor_asc" ${sortOpt==='floor_asc'?'selected':''}>מיון: קומה (עולה)</option>
+        <option value="floor_desc" ${sortOpt==='floor_desc'?'selected':''}>מיון: קומה (יורד)</option>
+        <option value="apt_asc" ${sortOpt==='apt_asc'?'selected':''}>מיון: מספר דירה (עולה)</option>
+        <option value="apt_desc" ${sortOpt==='apt_desc'?'selected':''}>מיון: מספר דירה (יורד)</option>
+      </select>
+    </div>
+    <div class="card">
+      ${filtered.length === 0 ? `
+        <div class="empty-state">
+          <div class="big">🏠</div>
+          <div class="msg">${owners.length===0 ? 'עדיין לא נוספו דירות. התחילו בהוספת הדירה הראשונה.' : 'לא נמצאו תוצאות תואמות.'}</div>
+          ${owners.length===0 ? '<button class="btn btn-primary" id="add-owner-btn-2">+ הוספת דירה</button>' : ''}
+        </div>` : `
+        <table>
+          <thead><tr>
+            <th>דירה</th><th>קומה</th><th>שם מלא</th><th>טלפון</th><th>מושכרת</th><th>הערות</th><th></th>
+          </tr></thead>
+          <tbody>
+            ${filtered.map(o => `
+              <tr>
+                <td><b>${esc(o.apartment)}</b></td>
+                <td>${esc(o.floor)}</td>
+                <td>${esc(o.full_name)}</td>
+                <td>${esc(o.phone||'—')}</td>
+                <td>${o.rented ? '<span class="badge badge-amber">מושכרת</span>' : '<span class="badge badge-grey">בעלים גר בדירה</span>'}</td>
+                <td style="color:var(--ink-soft);max-width:220px;">${esc(o.notes||'')}</td>
+                <td style="white-space:nowrap;">
+                  <button class="btn btn-sm btn-ghost edit-owner" data-id="${o.id}">עריכה</button>
+                  <button class="btn btn-sm btn-ghost btn-danger del-owner" data-id="${o.id}">מחיקה</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+
+  const openBtn = () => openOwnerModal();
+  content.querySelector('#add-owner-btn')?.addEventListener('click', openBtn);
+  content.querySelector('#add-owner-btn-2')?.addEventListener('click', openBtn);
+  content.querySelector('#owner-search').addEventListener('input', (e)=>{
+    renderOwners(content, e.target.value, content.querySelector('#owner-sort').value);
+  });
+  content.querySelector('#owner-sort').addEventListener('change', (e)=>{
+    renderOwners(content, content.querySelector('#owner-search').value, e.target.value);
+  });
+  content.querySelectorAll('.edit-owner').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const owner = await dbGet('owners', parseInt(btn.dataset.id));
+      openOwnerModal(owner);
+    });
+  });
+  content.querySelectorAll('.del-owner').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm('למחוק את הדירה מהרשימה? רשומות הגבייה של דירה זו יימחקו גם הן.')) return;
+      await dbDelete('owners', parseInt(btn.dataset.id));
+      showToast('הדירה נמחקה');
+      renderOwners(content);
+    });
+  });
+}
+
+function openOwnerModal(owner=null){
+  const isEdit = !!owner;
+  openModal(`
+    <div class="modal-head">
+      <h2>${isEdit ? 'עריכת דירה' : 'הוספת דירה'}</h2>
+      <button class="modal-close" id="m-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field">
+          <label>מספר דירה *</label>
+          <input type="text" id="f-apartment" value="${esc(owner?.apartment||'')}" placeholder="לדוגמה: 12">
+        </div>
+        <div class="field">
+          <label>קומה *</label>
+          <input type="number" id="f-floor" value="${owner?.floor ?? ''}" placeholder="לדוגמה: 3">
+        </div>
+      </div>
+      <div class="field">
+        <label>שם מלא של הבעלים *</label>
+        <input type="text" id="f-name" value="${esc(owner?.full_name||'')}" placeholder="שם ושם משפחה">
+      </div>
+      <div class="field">
+        <label>טלפון</label>
+        <input type="tel" id="f-phone" value="${esc(owner?.phone||'')}" placeholder="050-1234567">
+      </div>
+      <div class="field" style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <input type="checkbox" id="f-rented" style="width:18px;height:18px;cursor:pointer;" ${owner?.rented?'checked':''}>
+        <label for="f-rented" style="margin:0;cursor:pointer;">הדירה מושכרת (לא בעלים מתגורר בפועל)</label>
+      </div>
+      <div class="field">
+        <label>הערות</label>
+        <textarea id="f-notes" placeholder="לדוגמה: שוכר, בעל חניה נוספת...">${esc(owner?.notes||'')}</textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="m-cancel">ביטול</button>
+      <button class="btn btn-primary" id="m-save">שמירה</button>
+    </div>
+  `);
+  document.getElementById('m-close').addEventListener('click', closeModal);
+  document.getElementById('m-cancel').addEventListener('click', closeModal);
+  document.getElementById('m-save').addEventListener('click', async ()=>{
+    const apartment = document.getElementById('f-apartment').value.trim();
+    const floor = document.getElementById('f-floor').value.trim();
+    const fullName = document.getElementById('f-name').value.trim();
+    const phone = document.getElementById('f-phone').value.trim();
+    const rented = document.getElementById('f-rented').checked;
+    const notes = document.getElementById('f-notes').value.trim();
+    if(!apartment || !fullName || floor===''){
+      alert('נא למלא מספר דירה, קומה ושם מלא.');
+      return;
+    }
+    const obj = {apartment, floor: parseInt(floor)||0, full_name: fullName, phone, rented, notes};
+    try{
+      if(isEdit){ obj.id = owner.id; await dbPut('owners', obj); }
+      else{ await dbAdd('owners', obj); }
+      closeModal();
+      showToast(isEdit ? 'הפרטים נשמרו' : 'הדירה נוספה');
+      route();
+    }catch(err){ alert('שגיאה בשמירה: ' + err.message); }
+  });
+}
+
+/* ============================================================
+   COLLECTIONS (payments) — list page
+   ============================================================ */
+async function renderCollections(content){
+  const collections = (await dbGetAll('collections')).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const cards = await Promise.all(collections.map(async c => {
+    const entries = await dbGetByIndex('entries', 'collection_id', c.id);
+    const paid = entries.filter(e=>e.paid).length;
+    const total = entries.length;
+    const pct = total ? Math.round((paid/total)*100) : 0;
+    return {c, paid, total, pct};
+  }));
+
+  content.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">גבייה ותשלומים</h1>
+        <div class="page-sub">${collections.length} מחזורי גבייה</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="add-col-btn">+ גבייה חדשה</button>
+      </div>
+    </div>
+    ${cards.length === 0 ? `
+      <div class="card">
+        <div class="empty-state">
+          <div class="big">💰</div>
+          <div class="msg">עדיין לא נוצרה רשימת גבייה. צרו רשימה חדשה כדי לסמן מי שילם.</div>
+          <button class="btn btn-primary" id="add-col-btn-2">+ גבייה חדשה</button>
+        </div>
+      </div>
+    ` : `
+      <div class="collection-grid">
+        ${cards.map(({c,paid,total,pct}) => `
+          <div class="card collection-card" data-id="${c.id}">
+            <h3>${esc(c.title)}</h3>
+            <div class="cdate">${fmtDate(c.date)}${c.amount ? ' · ₪'+esc(c.amount)+' לדירה' : ''}</div>
+            <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <div class="progress-label"><span>${paid}/${total} שילמו</span><span>${pct}%</span></div>
+          </div>
+        `).join('')}
+      </div>
+    `}
+  `;
+  const openBtn = ()=>openCollectionModal();
+  content.querySelector('#add-col-btn')?.addEventListener('click', openBtn);
+  content.querySelector('#add-col-btn-2')?.addEventListener('click', openBtn);
+  content.querySelectorAll('.collection-card').forEach(el=>{
+    el.addEventListener('click', ()=>{ location.hash = '#collections/' + el.dataset.id; });
+  });
+}
+
+function openCollectionModal(){
+  openModal(`
+    <div class="modal-head">
+      <h2>גבייה חדשה</h2>
+      <button class="modal-close" id="m-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>כותרת הגבייה *</label>
+        <input type="text" id="f-title" placeholder="לדוגמה: אחזקה חודשית - ספטמבר 2026">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>תאריך</label>
+          <input type="date" id="f-date" value="${todayISO()}">
+        </div>
+        <div class="field">
+          <label>סכום לדירה (אופציונלי, ₪)</label>
+          <input type="number" id="f-amount" placeholder="לדוגמה: 150">
+        </div>
+      </div>
+      <div class="field">
+        <label>הערות</label>
+        <textarea id="f-notes" placeholder="פירוט נוסף לגבייה זו..."></textarea>
+      </div>
+      <div style="font-size:12.5px;color:var(--ink-soft);">כל בעלי הדירות הרשומים יתווספו אוטומטית לרשימה כ"לא שולם", ותוכלו לסמן מי שילם.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="m-cancel">ביטול</button>
+      <button class="btn btn-primary" id="m-save">יצירת גבייה</button>
+    </div>
+  `);
+  document.getElementById('m-close').addEventListener('click', closeModal);
+  document.getElementById('m-cancel').addEventListener('click', closeModal);
+  document.getElementById('m-save').addEventListener('click', async ()=>{
+    const title = document.getElementById('f-title').value.trim();
+    if(!title){ alert('נא להזין כותרת לגבייה.'); return; }
+    const date = document.getElementById('f-date').value || todayISO();
+    const amount = document.getElementById('f-amount').value.trim();
+    const notes = document.getElementById('f-notes').value.trim();
+    try{
+      const colId = await dbAdd('collections', {title, date, amount: amount?parseFloat(amount):null, notes});
+      const owners = await dbGetAll('owners');
+      for(const o of owners){
+        await dbAdd('entries', {collection_id: colId, owner_id: o.id, paid:false, notes:''});
+      }
+      closeModal();
+      showToast('הגבייה נוצרה');
+      location.hash = '#collections/' + colId;
+    }catch(err){ alert('שגיאה ביצירת הגבייה: ' + err.message); }
+  });
+}
+
+/* ============================================================
+   COLLECTION DETAIL PAGE
+   ============================================================ */
+let entrySortOption = 'default';
+function sortEntries(entries, ownerMap, sortOpt){
+  const arr = [...entries];
+  arr.sort((a,b)=>{
+    const oa = ownerMap[a.owner_id], ob = ownerMap[b.owner_id];
+    const base = (oa.floor-ob.floor) || naturalCompare(oa.apartment, ob.apartment);
+    if(sortOpt === 'unpaid_first'){ const pd = (a.paid?1:0) - (b.paid?1:0); return pd || base; }
+    if(sortOpt === 'paid_first'){ const pd = (b.paid?1:0) - (a.paid?1:0); return pd || base; }
+    return base;
+  });
+  return arr;
+}
+
+async function renderCollectionDetail(content, colId, sortOpt){
+  sortOpt = sortOpt || entrySortOption;
+  entrySortOption = sortOpt;
+  const col = await dbGet('collections', colId);
+  if(!col){ content.innerHTML = `<div class="card card-pad">הגבייה לא נמצאה.</div>`; return; }
+
+  const owners = (await dbGetAll('owners')).sort((a,b)=> (a.floor-b.floor) || naturalCompare(a.apartment,b.apartment));
+  let entries = await dbGetByIndex('entries', 'collection_id', colId);
+  const existingOwnerIds = new Set(entries.map(e=>e.owner_id));
+  for(const o of owners){
+    if(!existingOwnerIds.has(o.id)){
+      const newId = await dbAdd('entries', {collection_id: colId, owner_id: o.id, paid:false, notes:''});
+      entries.push({id:newId, collection_id:colId, owner_id:o.id, paid:false, notes:''});
+    }
+  }
+  const ownerMap = {};
+  owners.forEach(o=>ownerMap[o.id]=o);
+  entries = sortEntries(entries.filter(e => ownerMap[e.owner_id]), ownerMap, sortOpt);
+
+  const paidCount = entries.filter(e=>e.paid).length;
+  const total = entries.length;
+  const pct = total ? Math.round((paidCount/total)*100) : 0;
+  const collected = col.amount ? paidCount*col.amount : null;
+  const expected = col.amount ? total*col.amount : null;
+
+  content.innerHTML = `
+    <div class="back-link" id="back-link">→ חזרה לרשימת הגביות</div>
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">${esc(col.title)}</h1>
+        <div class="page-sub">${fmtDate(col.date)}${col.amount ? ' · ₪'+esc(col.amount)+' לדירה' : ''}${col.notes ? ' · '+esc(col.notes) : ''}</div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="export-entries-csv">⬇ ייצוא CSV</button>
+        <button class="btn btn-danger" id="del-col-btn">מחיקת גבייה</button>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="num">${paidCount}/${total}</div><div class="lbl">שילמו</div></div>
+      <div class="stat-box"><div class="num">${pct}%</div><div class="lbl">אחוז גבייה</div></div>
+      ${collected!==null ? `<div class="stat-box"><div class="num">₪${collected.toLocaleString()}</div><div class="lbl">נגבה מתוך ₪${expected.toLocaleString()}</div></div>` : ''}
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+      <select id="entry-sort" style="max-width:220px;">
+        <option value="default" ${sortOpt==='default'?'selected':''}>מיון: לפי דירה</option>
+        <option value="unpaid_first" ${sortOpt==='unpaid_first'?'selected':''}>מיון: לא שילמו קודם</option>
+        <option value="paid_first" ${sortOpt==='paid_first'?'selected':''}>מיון: שילמו קודם</option>
+      </select>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>דירה</th><th>שם</th><th>טלפון</th><th>שולם</th><th>הערות</th></tr></thead>
+        <tbody>
+          ${entries.map(e => {
+            const o = ownerMap[e.owner_id];
+            return `
+              <tr data-entry="${e.id}">
+                <td><b>${esc(o.apartment)}</b></td>
+                <td>${esc(o.full_name)}</td>
+                <td>${esc(o.phone||'—')}</td>
+                <td><input type="checkbox" class="pay-checkbox" ${e.paid?'checked':''}></td>
+                <td><input type="text" class="row-note-input" value="${esc(e.notes||'')}" placeholder="הערה..."></td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  content.querySelector('#back-link').addEventListener('click', ()=>{ location.hash = '#collections'; });
+  content.querySelector('#entry-sort').addEventListener('change', (e)=>{
+    renderCollectionDetail(content, colId, e.target.value);
+  });
+  content.querySelector('#export-entries-csv').addEventListener('click', ()=>{
+    const rows = entries.map(e=>{
+      const o = ownerMap[e.owner_id];
+      return {apartment:o.apartment, floor:o.floor, full_name:o.full_name, phone:o.phone||'', paid: e.paid?'כן':'לא', notes:e.notes||''};
+    });
+    downloadCSV(`${col.title}-${todayISO()}.csv`, [
+      {key:'apartment',label:'מספר דירה'},{key:'floor',label:'קומה'},{key:'full_name',label:'שם מלא'},
+      {key:'phone',label:'טלפון'},{key:'paid',label:'שולם'},{key:'notes',label:'הערות'}
+    ], rows);
+    showToast('קובץ ה-CSV הורד בהצלחה');
+  });
+  content.querySelector('#del-col-btn').addEventListener('click', async ()=>{
+    if(!confirm('למחוק את הגבייה הזו וכל נתוני התשלום שלה? הפעולה לא הפיכה.')) return;
+    try{
+      await dbDelete('collections', colId);
+      showToast('הגבייה נמחקה');
+      location.hash = '#collections';
+    }catch(err){ alert('שגיאה במחיקה: ' + err.message); }
+  });
+
+  content.querySelectorAll('tr[data-entry]').forEach(row=>{
+    const entryId = parseInt(row.dataset.entry);
+    const checkbox = row.querySelector('.pay-checkbox');
+    const noteInput = row.querySelector('.row-note-input');
+    async function save(){
+      const entry = entries.find(e=>e.id===entryId);
+      try{
+        await dbPut('entries', {id: entryId, paid: checkbox.checked, notes: noteInput.value.trim()});
+        entry.paid = checkbox.checked;
+        entry.notes = noteInput.value.trim();
+      }catch(err){ alert('שגיאה בשמירה: ' + err.message); }
+    }
+    checkbox.addEventListener('change', async ()=>{
+      await save();
+      renderCollectionDetail(content, colId, entrySortOption);
+    });
+    noteInput.addEventListener('blur', save);
+  });
+}
+
+/* ============================================================
+   ISSUES PAGE
+   ============================================================ */
+const ISSUE_TYPES = ['אינסטלציה','חשמל','מעלית','ניקיון','מבנה וגג','גינון','אחר'];
+const ISSUE_STATUSES = ['חדש','בטיפול','טופל'];
+let issueFilter = 'הכל';
+
+async function renderIssues(content){
+  const all = (await dbGetAll('issues')).sort((a,b)=> (b.created_at||'').localeCompare(a.created_at||''));
+  const issues = issueFilter === 'הכל' ? all : all.filter(i=>i.status===issueFilter);
+
+  content.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">תקלות בבניין</h1>
+        <div class="page-sub">${all.length} תקלות רשומות</div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="export-issues-csv">⬇ ייצוא CSV</button>
+        <button class="btn btn-primary" id="add-issue-btn">+ תקלה חדשה</button>
+      </div>
+    </div>
+    <div class="filter-tabs">
+      ${['הכל', ...ISSUE_STATUSES].map(s => `<div class="filter-tab ${s===issueFilter?'active':''}" data-status="${esc(s)}">${esc(s)}</div>`).join('')}
+    </div>
+    ${issues.length === 0 ? `
+      <div class="card">
+        <div class="empty-state">
+          <div class="big">🛠️</div>
+          <div class="msg">${all.length===0 ? 'עדיין לא נרשמו תקלות.' : 'אין תקלות בסטטוס זה.'}</div>
+          ${all.length===0 ? '<button class="btn btn-primary" id="add-issue-btn-2">+ תקלה חדשה</button>' : ''}
+        </div>
+      </div>
+    ` : `
+      <div class="issue-grid">
+        ${issues.map(i => `
+          <div class="card issue-card" data-id="${i.id}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+              <h3>${esc(i.title)}</h3>
+              <span class="badge ${i.status==='טופל'?'badge-green':i.status==='בטיפול'?'badge-amber':'badge-red'}">${esc(i.status)}</span>
+            </div>
+            <div style="font-size:12px;color:var(--ink-faint);margin-bottom:6px;">${esc(i.type)} · ${fmtDate(i.created_at)}</div>
+            <div style="font-size:13px;color:var(--ink-soft);max-height:40px;overflow:hidden;">${esc(i.description||'')}</div>
+            ${i.photos && i.photos.length ? `<div class="issue-thumbs">${i.photos.slice(0,3).map(p=>`<img src="${p}">`).join('')}${i.photos.length>3?`<span style="align-self:center;font-size:12px;color:var(--ink-soft);">+${i.photos.length-3}</span>`:''}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `}
+  `;
+
+  const openBtn = ()=>openIssueModal();
+  content.querySelector('#add-issue-btn')?.addEventListener('click', openBtn);
+  content.querySelector('#add-issue-btn-2')?.addEventListener('click', openBtn);
+  content.querySelector('#export-issues-csv')?.addEventListener('click', ()=>{
+    const rows = issues.map(i=>({
+      title:i.title, type:i.type, status:i.status,
+      description:i.description||'', notes:i.notes||'', date: fmtDate(i.created_at)
+    }));
+    downloadCSV(`תקלות-${todayISO()}.csv`, [
+      {key:'title',label:'כותרת'},{key:'type',label:'סוג'},{key:'status',label:'סטטוס'},
+      {key:'description',label:'תיאור'},{key:'notes',label:'הערות'},{key:'date',label:'תאריך'}
+    ], rows);
+    showToast('קובץ ה-CSV הורד בהצלחה');
+  });
+  content.querySelectorAll('.filter-tab').forEach(el=>{
+    el.addEventListener('click', ()=>{ issueFilter = el.dataset.status; renderIssues(content); });
+  });
+  content.querySelectorAll('.issue-card').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      const issue = await dbGet('issues', parseInt(el.dataset.id));
+      openIssueModal(issue);
+    });
+  });
+}
+
+function openIssueModal(issue=null){
+  const isEdit = !!issue;
+  let photos = issue?.photos ? [...issue.photos] : [];
+
+  openModal(`
+    <div class="modal-head">
+      <h2>${isEdit ? 'עדכון תקלה' : 'תקלה חדשה'}</h2>
+      <button class="modal-close" id="m-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>כותרת התקלה *</label>
+        <input type="text" id="f-title" value="${esc(issue?.title||'')}" placeholder="לדוגמה: נזילה בחדר מדרגות קומה 2">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>סוג תקלה</label>
+          <select id="f-type">
+            ${ISSUE_TYPES.map(t=>`<option value="${esc(t)}" ${issue?.type===t?'selected':''}>${esc(t)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>סטטוס</label>
+          <select id="f-status">
+            ${ISSUE_STATUSES.map(s=>`<option value="${esc(s)}" ${issue?.status===s?'selected':''}>${esc(s)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>פירוט</label>
+        <textarea id="f-desc" placeholder="תיאור מפורט של התקלה...">${esc(issue?.description||'')}</textarea>
+      </div>
+      <div class="field">
+        <label>תמונות</label>
+        <div class="photo-input-wrap" id="photo-trigger">📷 לחצו להוספת תמונות</div>
+        <input type="file" id="f-photos" accept="image/*" multiple style="display:none;">
+        <div class="photo-preview-grid" id="photo-preview"></div>
+        <div id="photo-status" style="font-size:12px;color:var(--ink-soft);margin-top:6px;"></div>
+      </div>
+      <div class="field">
+        <label>הערות</label>
+        <textarea id="f-notes" placeholder="עדכוני טיפול, פרטי קשר של בעל מקצוע...">${esc(issue?.notes||'')}</textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      ${isEdit ? '<button class="btn btn-danger" id="m-delete" style="margin-left:auto;">מחיקת תקלה</button>' : ''}
+      <button class="btn" id="m-cancel">ביטול</button>
+      <button class="btn btn-primary" id="m-save">שמירה</button>
+    </div>
+  `);
+
+  function renderPreviews(){
+    const grid = document.getElementById('photo-preview');
+    grid.innerHTML = photos.map((p,idx)=>`
+      <div class="ph"><img src="${p}"><button class="rm" data-idx="${idx}">✕</button></div>
+    `).join('');
+    grid.querySelectorAll('.rm').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        photos.splice(parseInt(btn.dataset.idx),1);
+        renderPreviews();
+      });
+    });
+  }
+  renderPreviews();
+
+  document.getElementById('photo-trigger').addEventListener('click', ()=>{
+    document.getElementById('f-photos').click();
+  });
+  document.getElementById('f-photos').addEventListener('change', async (e)=>{
+    const files = Array.from(e.target.files);
+    const statusEl = document.getElementById('photo-status');
+    for(const file of files){
+      try{
+        statusEl.textContent = 'מעלה תמונה...';
+        const url = await uploadIssuePhoto(file);
+        photos.push(url);
+      }catch(err){ console.error(err); alert('שגיאה בהעלאת תמונה: ' + err.message); }
+    }
+    statusEl.textContent = '';
+    renderPreviews();
+    e.target.value = '';
+  });
+
+  document.getElementById('m-close').addEventListener('click', closeModal);
+  document.getElementById('m-cancel').addEventListener('click', closeModal);
+  document.getElementById('m-delete')?.addEventListener('click', async ()=>{
+    if(!confirm('למחוק תקלה זו?')) return;
+    await dbDelete('issues', issue.id);
+    closeModal();
+    showToast('התקלה נמחקה');
+    route();
+  });
+  document.getElementById('m-save').addEventListener('click', async ()=>{
+    const title = document.getElementById('f-title').value.trim();
+    if(!title){ alert('נא להזין כותרת לתקלה.'); return; }
+    const obj = {
+      title,
+      type: document.getElementById('f-type').value,
+      status: document.getElementById('f-status').value,
+      description: document.getElementById('f-desc').value.trim(),
+      notes: document.getElementById('f-notes').value.trim(),
+      photos,
+    };
+    try{
+      if(isEdit){ obj.id = issue.id; await dbPut('issues', obj); }
+      else{ obj.created_at = new Date().toISOString(); await dbAdd('issues', obj); }
+      closeModal();
+      showToast(isEdit ? 'התקלה עודכנה' : 'התקלה נוספה');
+      route();
+    }catch(err){ alert('שגיאה בשמירה: ' + err.message); }
+  });
+}
+
+/* ============================================================
+   SUMMARY PAGE
+   ============================================================ */
+async function renderSummary(content, selectedId=null){
+  const collections = (await dbGetAll('collections')).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const allOwners = await dbGetAll('owners');
+  const rentedCount = allOwners.filter(o=>o.rented).length;
+  const rentedPct = allOwners.length ? Math.round((rentedCount/allOwners.length)*100) : 0;
+  const rentedBlock = `
+    <div class="stat-row">
+      <div class="stat-box"><div class="num">${allOwners.length}</div><div class="lbl">סה"כ דירות בבניין</div></div>
+      <div class="stat-box"><div class="num">${rentedCount}</div><div class="lbl">דירות בשכירות</div></div>
+      <div class="stat-box"><div class="num">${rentedPct}%</div><div class="lbl">אחוז דירות בשכירות</div></div>
+    </div>
+  `;
+  if(collections.length === 0){
+    content.innerHTML = `
+      <div class="page-header"><div><h1 class="page-title">סיכום ודוחות</h1></div></div>
+      ${rentedBlock}
+      <div class="card"><div class="empty-state">
+        <div class="big">📊</div>
+        <div class="msg">עדיין אין נתוני גבייה להצגה. צרו רשימת גבייה כדי לראות כאן סטטיסטיקות.</div>
+        <button class="btn btn-primary" id="go-col">מעבר לגבייה</button>
+      </div></div>
+    `;
+    content.querySelector('#go-col').addEventListener('click', ()=>{ location.hash = '#collections'; });
+    return;
+  }
+  const colId = selectedId || collections[0].id;
+  const col = collections.find(c=>c.id===colId) || collections[0];
+  const owners = allOwners;
+  const ownerMap = {}; owners.forEach(o=>ownerMap[o.id]=o);
+  const entries = await dbGetByIndex('entries', 'collection_id', col.id);
+
+  const paidEntries = entries.filter(e=>e.paid);
+  const unpaidEntries = entries.filter(e=>!e.paid && ownerMap[e.owner_id]);
+  const total = entries.length;
+  const pct = total ? Math.round((paidEntries.length/total)*100) : 0;
+
+  content.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">סיכום ודוחות</h1>
+        <div class="page-sub">תמונת מצב לכל גבייה בנפרד</div>
+      </div>
+      <div class="actions">
+        <select id="col-select" style="min-width:220px;">
+          ${collections.map(c=>`<option value="${c.id}" ${c.id===col.id?'selected':''}>${esc(c.title)} (${fmtDate(c.date)})</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    ${rentedBlock}
+
+    <div class="card card-pad" style="margin-bottom:18px;">
+      <div class="donut-wrap">
+        <div class="donut" style="background:conic-gradient(var(--green) 0% ${pct}%, var(--red) ${pct}% 100%);">
+          <div class="donut-inner"><div class="pct">${pct}%</div><div class="pct-lbl">שולם</div></div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot" style="background:var(--green);"></span>${paidEntries.length} דירות שילמו</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--red);"></span>${unpaidEntries.length} דירות לא שילמו</div>
+          ${col.amount ? `<div class="legend-item">💰 נגבה ₪${(paidEntries.length*col.amount).toLocaleString()} מתוך ₪${(total*col.amount).toLocaleString()}</div>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="padding:16px 20px 4px 20px;font-weight:600;color:var(--navy-dark);font-size:14.5px;">
+        מסרבי תשלום (${unpaidEntries.length})
+      </div>
+      ${unpaidEntries.length === 0 ? `
+        <div class="empty-state" style="padding:26px;"><div class="msg" style="margin:0;">כל הדירות שילמו בגבייה הזו 🎉</div></div>
+      ` : `
+      <table>
+        <thead><tr><th>דירה</th><th>שם</th><th>טלפון</th><th>הערה</th><th></th></tr></thead>
+        <tbody>
+          ${unpaidEntries.map(e=>{
+            const o = ownerMap[e.owner_id];
+            if(!o) return '';
+            return `
+              <tr>
+                <td><b>${esc(o.apartment)}</b></td>
+                <td>${esc(o.full_name)}</td>
+                <td>${esc(o.phone||'—')}</td>
+                <td style="color:var(--ink-soft);">${esc(e.notes||'')}</td>
+                <td>${o.phone ? `<button class="btn btn-sm btn-ghost copy-phone" data-phone="${esc(o.phone)}">העתקת טלפון</button>` : ''}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+      `}
+    </div>
+  `;
+
+  content.querySelector('#col-select').addEventListener('change', (e)=>{
+    renderSummary(content, parseInt(e.target.value));
+  });
+  content.querySelectorAll('.copy-phone').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      navigator.clipboard?.writeText(btn.dataset.phone).then(()=>showToast('הטלפון הועתק'));
+    });
+  });
+}
+
+/* ============================================================
+   SETTINGS PAGE
+   ============================================================ */
+async function renderSettings(content){
+  content.innerHTML = `
+    <div class="page-header"><div><h1 class="page-title">הגדרות וגיבוי</h1></div></div>
+
+    <div class="card card-pad settings-section">
+      <h3>גיבוי ושחזור מידע (JSON)</h3>
+      <p>הנתונים נשמרים במסד נתונים משותף בענן (Supabase). בטייר החינמי אין גיבוי יומי אוטומטי — מומלץ לייצא גיבוי JSON מדי פעם כרשת ביטחון נוספת.</p>
+      <div class="actions">
+        <button class="btn btn-primary" id="export-btn">⬇ ייצוא גיבוי</button>
+        <button class="btn" id="import-trigger">⬆ שחזור מגיבוי</button>
+        <input type="file" id="import-file" accept=".json" style="display:none;">
+      </div>
+    </div>
+
+    <div class="card card-pad settings-section">
+      <h3>ייבוא וייצוא CSV — בעלי דירות</h3>
+      <p>ייצוא לקובץ CSV נוח לפתיחה ולעריכה באקסל. ייבוא בחזרה יעדכן דירות קיימות (מזוהות לפי מספר דירה) ויוסיף דירות חדשות.</p>
+      <div class="actions">
+        <button class="btn btn-primary" id="export-owners-csv">⬇ ייצוא CSV</button>
+        <button class="btn" id="import-owners-csv-trigger">⬆ ייבוא מ-CSV</button>
+        <input type="file" id="import-owners-csv-file" accept=".csv" style="display:none;">
+      </div>
+    </div>
+
+    <div class="card card-pad settings-section">
+      <h3>הוספת נציגי ועד נוספים</h3>
+      <p>מטעמי אבטחה, יצירת משתמשים חדשים נעשית מלוח הבקרה של Supabase ולא מתוך האפליקציה עצמה (כדי שאף אחד לא יוכל ליצור לעצמו גישה בלי אישור). כניסה ל-Supabase → Authentication → Users → Add user, עם אימייל וסיסמה זמנית לנציג החדש.</p>
+    </div>
+
+    <div class="card card-pad settings-section">
+      <h3>הודעות אוטומטיות בוואטסאפ <span class="soon-tag">בקרוב</span></h3>
+      <p>אפשר להוסיף בהמשך שליחת תזכורות אוטומטיות דרך WhatsApp Business API, המופעלת מ-Supabase Edge Function.</p>
+      <button class="btn" disabled>הגדרת הודעות אוטומטיות</button>
+    </div>
+  `;
+
+  content.querySelector('#export-btn').addEventListener('click', async ()=>{
+    const data = {
+      exportedAt: new Date().toISOString(),
+      owners: await dbGetAll('owners'),
+      collections: await dbGetAll('collections'),
+      entries: await dbGetAll('entries'),
+      issues: await dbGetAll('issues'),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `גיבוי-ועד-בית-${todayISO()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('הגיבוי הורד בהצלחה');
+  });
+
+  content.querySelector('#import-trigger').addEventListener('click', ()=>{
+    content.querySelector('#import-file').click();
+  });
+  content.querySelector('#import-file').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    if(!confirm('שחזור מגיבוי יחליף את כל המידע הקיים במסד הנתונים המשותף עבור כל נציגי הוועד. להמשיך?')) { e.target.value=''; return; }
+    try{
+      const text = await file.text();
+      const data = JSON.parse(text);
+      for(const name of ['entries','issues','collections','owners']){
+        const existing = await dbGetAll(name);
+        for(const item of existing) await dbDelete(name, item.id);
+      }
+      for(const name of ['owners','collections','entries','issues']){
+        for(const item of (data[name]||[])) await dbInsertRaw(name, item);
+      }
+      showToast('השחזור הושלם בהצלחה');
+      route();
+    }catch(err){
+      alert('קובץ הגיבוי לא תקין: ' + err.message);
+    }
+    e.target.value = '';
+  });
+
+  content.querySelector('#export-owners-csv').addEventListener('click', async ()=>{
+    const owners = sortOwners(await dbGetAll('owners'), 'floor_asc');
+    downloadCSV(`דירות-${todayISO()}.csv`, [
+      {key:'apartment',label:'מספר דירה'},{key:'floor',label:'קומה'},
+      {key:'full_name',label:'שם מלא'},{key:'phone',label:'טלפון'},
+      {key:'rentedLabel',label:'מושכרת'},{key:'notes',label:'הערות'}
+    ], owners.map(o=>({...o, rentedLabel: o.rented?'כן':'לא'})));
+    showToast('קובץ ה-CSV הורד בהצלחה');
+  });
+  content.querySelector('#import-owners-csv-trigger').addEventListener('click', ()=>{
+    content.querySelector('#import-owners-csv-file').click();
+  });
+  content.querySelector('#import-owners-csv-file').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    try{
+      const text = await file.text();
+      const rows = parseCSV(text);
+      if(rows.length < 1){ alert('הקובץ ריק.'); e.target.value=''; return; }
+      const header = rows[0].map(h=>h.trim());
+      const idx = {
+        apartment: header.indexOf('מספר דירה'),
+        floor: header.indexOf('קומה'),
+        fullName: header.indexOf('שם מלא'),
+        phone: header.indexOf('טלפון'),
+        rented: header.indexOf('מושכרת'),
+        notes: header.indexOf('הערות'),
+      };
+      if(idx.apartment === -1 || idx.fullName === -1){
+        alert('כותרות הקובץ לא תואמות. חייבות להיות עמודות "מספר דירה" ו"שם מלא".');
+        e.target.value=''; return;
+      }
+      const existing = await dbGetAll('owners');
+      const byApt = {};
+      existing.forEach(o=>{ byApt[String(o.apartment).trim()] = o; });
+      let added=0, updated=0;
+      for(let i=1;i<rows.length;i++){
+        const r = rows[i];
+        const apartment = (r[idx.apartment]||'').trim();
+        const fullName = (r[idx.fullName]||'').trim();
+        if(!apartment || !fullName) continue;
+        const floor = idx.floor>-1 ? (parseInt(r[idx.floor])||0) : 0;
+        const phone = idx.phone>-1 ? (r[idx.phone]||'').trim() : '';
+        const notes = idx.notes>-1 ? (r[idx.notes]||'').trim() : '';
+        const rentedRaw = idx.rented>-1 ? (r[idx.rented]||'').trim() : '';
+        const rented = ['כן','true','1','yes'].includes(rentedRaw.toLowerCase());
+        if(byApt[apartment]){
+          const o = byApt[apartment];
+          await dbPut('owners', {id:o.id, floor, full_name:fullName, phone, rented, notes});
+          updated++;
+        }else{
+          await dbAdd('owners', {apartment, floor, full_name:fullName, phone, rented, notes});
+          added++;
+        }
+      }
+      showToast(`יובאו: ${added} דירות נוספו, ${updated} עודכנו`);
+      route();
+    }catch(err){
+      alert('שגיאה בקריאת קובץ ה-CSV: ' + err.message);
+    }
+    e.target.value = '';
+  });
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+initAuth();
+</script>
+</body>
+</html>
