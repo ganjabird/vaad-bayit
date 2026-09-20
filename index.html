@@ -151,6 +151,44 @@
 
   ::-webkit-scrollbar{width:9px;}
   ::-webkit-scrollbar-thumb{background:#D3D8D2;border-radius:99px;}
+
+  /* ---------- Mobile layout ---------- */
+  @media (max-width: 760px){
+    #app-shell{ flex-direction: column; }
+    .sidebar{
+      width:100%; min-height:auto; flex-direction:row; align-items:center;
+      overflow-x:auto; -webkit-overflow-scrolling:touch;
+      padding:10px 10px; gap:4px; position:sticky; top:0; z-index:10;
+    }
+    .sidebar .brand{ display:none; }
+    .sidebar .nav-item{
+      flex-direction:column; gap:2px; font-size:10.5px; padding:7px 11px;
+      white-space:nowrap; margin-bottom:0; flex-shrink:0;
+    }
+    .sidebar .nav-item .ic{ font-size:17px; width:auto; }
+    .sidebar-footer{
+      margin-top:0; padding-top:0; border-top:none;
+      border-right:1px solid rgba(255,255,255,0.15);
+      padding-right:10px; margin-right:2px; flex-shrink:0;
+      display:flex; align-items:center;
+    }
+    .sidebar-footer .user-email{ display:none; }
+    .sidebar-footer .btn-block{ width:auto; padding:8px 12px; white-space:nowrap; }
+    .main{ padding:18px 14px 40px 14px; }
+    .page-header{ flex-direction:column; align-items:stretch; }
+    .page-title{ font-size:19px; }
+    .actions{ width:100%; }
+    .actions .btn{ flex:1; justify-content:center; }
+    .stat-row{ gap:8px; }
+    .stat-box{ min-width:96px; padding:10px 12px; }
+    .stat-box .num{ font-size:18px; }
+    .collection-grid, .issue-grid{ grid-template-columns: 1fr; }
+    .donut-wrap{ flex-direction:column; align-items:flex-start; gap:16px; }
+    .card:has(table){ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .card table{ min-width:560px; }
+    .modal{ max-width:100%; }
+    .search-box{ max-width:none; flex:1; }
+  }
 </style>
 </head>
 <body>
